@@ -55,3 +55,8 @@ class PartnerCb(CallbackData, prefix="partner"):
 
 class AdminCb(CallbackData, prefix="admin"):
     action: str  # test_llm | menu
+
+
+class RatingCb(CallbackData, prefix="rate"):
+    task_id: int
+    value: int  # 1..10

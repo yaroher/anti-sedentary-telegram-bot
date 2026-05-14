@@ -12,6 +12,7 @@ from .callbacks import (
     MenuCb,
     QuestionCb,
     QuietCb,
+    RatingCb,
     ScheduleCb,
     SnoozeCb,
     TaskCb,
@@ -81,8 +82,11 @@ def quiet_keyboard(locale: str) -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-def question_keyboard(locale: str, task_id: int) -> InlineKeyboardMarkup:
+def question_keyboard(locale: str, task_id: int, *, rating: bool = False) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
+    if rating:
+        for n in range(1, 11):
+            b.button(text=str(n), callback_data=RatingCb(task_id=task_id, value=n))
     b.button(
         text=t(locale, "task.question_answer"),
         callback_data=QuestionCb(action="answer", task_id=task_id),
@@ -91,7 +95,10 @@ def question_keyboard(locale: str, task_id: int) -> InlineKeyboardMarkup:
         text=t(locale, "task.question_skip"),
         callback_data=QuestionCb(action="skip", task_id=task_id),
     )
-    b.adjust(1)
+    if rating:
+        b.adjust(5, 5, 1, 1)
+    else:
+        b.adjust(1)
     return b.as_markup()
 
 

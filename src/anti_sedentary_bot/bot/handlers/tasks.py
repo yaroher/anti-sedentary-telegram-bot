@@ -10,7 +10,7 @@ from ...repositories import tasks as task_repo
 from ...services.llm import add_message, llm_text
 from ...services.tasks import complete_task, skip_task
 from ...utils.time import human_time_left, now
-from ..callbacks import QuestionCb, SnoozeCb, TaskCb
+from ..callbacks import QuestionCb, RatingCb, SnoozeCb, TaskCb
 from ..keyboards import main_menu, question_keyboard, task_keyboard
 from ..states import InputStates
 
@@ -34,9 +34,12 @@ async def cb_task_done(query: CallbackQuery, callback_data: TaskCb, state: FSMCo
     if task.check_question:
         await state.set_state(InputStates.waiting_check_answer)
         await state.update_data(task_id=task.id)
+        # Show 1..10 rating buttons when the question asks for a numeric rating.
+        q_lower = (task.check_question or "").lower()
+        is_rating = any(s in q_lower for s in ("1 до 10", "1 to 10", "1-10", "от 1", "from 1"))
         await query.message.answer(
             t(user.language, "task.check_intro", question=task.check_question),
-            reply_markup=question_keyboard(user.language, task.id),
+            reply_markup=question_keyboard(user.language, task.id, rating=is_rating),
         )
     else:
         msg = await llm_text(
@@ -107,4 +110,33 @@ async def cb_question_skip(query: CallbackQuery, callback_data: QuestionCb, user
     await query.message.answer(
         t(user.language, "task.question_skipped"), reply_markup=main_menu(user.language)
     )
+    await query.answer()
+
+
+@router.callback_query(RatingCb.filter())
+async def cb_rating(query: CallbackQuery, callback_data: RatingCb, state: FSMContext, user: User) -> None:
+    """Inline rating button (1..10) used as quick check-answer."""
+    from ...repositories import tasks as t_repo
+    from ...services import calibration
+
+    assert query.message is not None
+    task = await t_repo.find_any_for_user(callback_data.task_id, user.user_id)
+    if task is None:
+        await query.answer(t(user.language, "task.closed"), show_alert=True)
+        return
+
+    rating = int(callback_data.value)
+    await t_repo.set_difficulty_rating(callback_data.task_id, user.user_id, rating)
+    task.difficulty_rating = rating
+    task.check_answer = str(rating)
+    await task.save(update_fields=["difficulty_rating", "check_answer"])
+    await calibration.apply_difficulty_rating(user, task)
+    await state.clear()
+
+    try:
+        await query.message.edit_text(
+            t(user.language, "task.check_intro", question=task.check_question) + f"\n\n<b>{rating}/10</b> ✅"
+        )
+    except Exception:
+        await query.message.answer(f"{rating}/10 ✅", reply_markup=main_menu(user.language))
     await query.answer()
