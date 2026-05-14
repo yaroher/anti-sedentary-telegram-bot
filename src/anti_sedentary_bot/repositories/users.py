@@ -242,3 +242,17 @@ async def list_dormant_for_reengagement(days_silent: int, cooldown_days: int = 7
         if latest is None or latest.last_task_at is None or latest.last_task_at < cutoff_activity:
             result.append(u)
     return result
+
+
+async def list_health_enabled(kind: str) -> list[User]:
+    """Return enabled, non-deleted users with the given health track enabled."""
+    kind_field = {
+        "eye": "eye_break_enabled",
+        "hydration": "hydration_enabled",
+        "posture": "posture_enabled",
+    }
+    if kind not in kind_field:
+        raise ValueError(f"Unknown health kind: {kind!r}")
+    return await User.filter(
+        is_enabled=True, is_deleted=False, **{kind_field[kind]: True}
+    )

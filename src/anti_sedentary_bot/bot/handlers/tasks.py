@@ -30,6 +30,8 @@ async def cb_task_done(query: CallbackQuery, callback_data: TaskCb, state: FSMCo
             show_alert=True,
         )
         return
+    # ACK immediately — LLM/retry can take >15s and the callback would expire.
+    await query.answer()
     await complete_task(user, task)
     if task.check_question:
         await state.set_state(InputStates.waiting_check_answer)
@@ -54,7 +56,6 @@ async def cb_task_done(query: CallbackQuery, callback_data: TaskCb, state: FSMCo
             await query.message.edit_text(f"✅ {msg}")
         except Exception:
             await query.message.answer(f"✅ {msg}")
-    await query.answer()
 
 
 @router.callback_query(TaskCb.filter(F.action.in_({"skip", "hard"})))
@@ -64,6 +65,8 @@ async def cb_task_skip(query: CallbackQuery, callback_data: TaskCb, user: User) 
     if not task:
         await query.answer(t(user.language, "task.closed"), show_alert=True)
         return
+    # ACK immediately to avoid callback expiry while LLM runs.
+    await query.answer()
     hard = callback_data.action == "hard"
     await skip_task(user, task, hard=hard)
     purpose = "respond to too-hard task" if hard else "respond to skip"
@@ -74,7 +77,6 @@ async def cb_task_skip(query: CallbackQuery, callback_data: TaskCb, user: User) 
         await query.message.edit_text(text)
     except Exception:
         await query.message.answer(text, reply_markup=main_menu(user.language))
-    await query.answer()
 
 
 @router.callback_query(SnoozeCb.filter())
