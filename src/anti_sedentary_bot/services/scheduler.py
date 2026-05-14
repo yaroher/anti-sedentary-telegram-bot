@@ -7,12 +7,19 @@ from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
 
 from ..config import settings
+from ..repositories import busy_periods as busy_repo
 from .cleanup import run_message_cleanup
 from .daily_summary import send_daily_summary
 from .memory_bank import refresh_all_users
 from .reengagement import reengage
 from .summary import send_weekly_summary
 from .tasks import tick_scheduler
+
+
+async def _busy_cleanup() -> None:
+    count = await busy_repo.cleanup_expired()
+    if count:
+        logger.info("Cleaned up {} expired busy_periods", count)
 
 
 def build_scheduler(bot: Bot) -> AsyncIOScheduler:
@@ -80,6 +87,16 @@ def build_scheduler(bot: Bot) -> AsyncIOScheduler:
         CronTrigger(day_of_week="sun", hour=22, minute=0, timezone=settings.tz),
         kwargs={"bot": bot},
         id="memory_bank",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+
+    # BusyPeriod cleanup — daily at cleanup_hour:30
+    scheduler.add_job(
+        _busy_cleanup,
+        CronTrigger(hour=settings.cleanup_hour, minute=30, timezone=settings.tz),
+        id="busy_cleanup",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

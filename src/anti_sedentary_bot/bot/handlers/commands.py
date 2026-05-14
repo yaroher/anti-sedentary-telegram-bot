@@ -238,7 +238,6 @@ async def cmd_water(message: Message, user: User) -> None:
 
 @router.message(Command("partner"))
 async def cmd_partner(message: Message, bot, user: User) -> None:
-    from ...bot.notifications import notify_simple
     from ...repositories import partnerships as partner_repo
 
     args = (message.text or "").split(maxsplit=1)
@@ -261,12 +260,31 @@ async def cmd_partner(message: Message, bot, user: User) -> None:
         await message.answer(t(user.language, "partner.not_found", username=arg))
         return
 
-    await partner_repo.pair(user, other)
+    await partner_repo.request_pair(user, other)
     name = other.first_name or other.username or str(other.user_id)
-    await message.answer(t(user.language, "partner.paired", name=name))
+    await message.answer(t(user.language, "partner.requested", name=name))
+
+    # Ask the other side to accept/decline.
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from ..callbacks import PartnerCb
 
     my_name = user.first_name or user.username or str(user.user_id)
-    await notify_simple(bot, other, t(other.language, "partner.added_by", name=my_name))
+    b = InlineKeyboardBuilder()
+    b.button(
+        text=t(other.language, "partner.btn_accept"),
+        callback_data=PartnerCb(action="accept", requester_id=user.user_id),
+    )
+    b.button(
+        text=t(other.language, "partner.btn_decline"),
+        callback_data=PartnerCb(action="decline", requester_id=user.user_id),
+    )
+    b.adjust(2)
+    await bot.send_message(
+        other.user_id,
+        t(other.language, "partner.request_incoming", name=my_name),
+        reply_markup=b.as_markup(),
+    )
 
 
 @router.message(Command("unpartner"))
@@ -284,3 +302,47 @@ async def cmd_unpartner(message: Message, bot, user: User) -> None:
 
     my_name = user.first_name or user.username or str(user.user_id)
     await notify_simple(bot, partner, t(partner.language, "partner.partner_unpaired", name=my_name))
+
+
+# --- partner accept/decline callbacks ------------------------------------------------
+from aiogram import F  # noqa: E402
+
+from ..callbacks import PartnerCb  # noqa: E402
+
+
+@router.callback_query(PartnerCb.filter(F.action == "accept"))
+async def cb_partner_accept(query, callback_data: PartnerCb, bot, user: User) -> None:
+    from ...bot.notifications import notify_simple
+    from ...db.models import User as UserModel
+    from ...repositories import partnerships as partner_repo
+
+    requester = await UserModel.filter(user_id=callback_data.requester_id).first()
+    if requester is None:
+        await query.answer(t(user.language, "partner.not_found", username="?"), show_alert=True)
+        return
+    ok = await partner_repo.accept_pair(user, requester)
+    if not ok:
+        await query.answer(t(user.language, "partner.no_pending"), show_alert=True)
+        return
+    name = requester.first_name or requester.username or str(requester.user_id)
+    await query.message.edit_text(t(user.language, "partner.accepted", name=name))
+    my_name = user.first_name or user.username or str(user.user_id)
+    await notify_simple(bot, requester, t(requester.language, "partner.accepted_by", name=my_name))
+    await query.answer()
+
+
+@router.callback_query(PartnerCb.filter(F.action == "decline"))
+async def cb_partner_decline(query, callback_data: PartnerCb, bot, user: User) -> None:
+    from ...bot.notifications import notify_simple
+    from ...db.models import User as UserModel
+    from ...repositories import partnerships as partner_repo
+
+    requester = await UserModel.filter(user_id=callback_data.requester_id).first()
+    if requester is None:
+        await query.answer()
+        return
+    await partner_repo.decline_pair(user, requester)
+    await query.message.edit_text(t(user.language, "partner.declined"))
+    my_name = user.first_name or user.username or str(user.user_id)
+    await notify_simple(bot, requester, t(requester.language, "partner.declined_by", name=my_name))
+    await query.answer()

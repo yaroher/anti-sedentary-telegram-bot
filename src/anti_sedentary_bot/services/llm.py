@@ -24,11 +24,11 @@ class LlmRequest(BaseModel):
 
 def get_client() -> AsyncOpenAI | None:
     global _client
-    if not settings.llm_enabled or not settings.groq_api_key:
+    if not settings.llm_enabled or not settings.llm_effective_api_key:
         return None
     if _client is None:
         _client = AsyncOpenAI(
-            api_key=settings.groq_api_key,
+            api_key=settings.llm_effective_api_key,
             base_url=settings.llm_base_url,
             timeout=settings.llm_timeout_seconds,
         )

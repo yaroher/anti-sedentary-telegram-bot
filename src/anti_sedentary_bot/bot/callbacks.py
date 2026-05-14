@@ -46,3 +46,12 @@ class QuietCb(CallbackData, prefix="quiet"):
 
 class HealthCb(CallbackData, prefix="health"):
     kind: str  # eye | hydration | posture
+
+
+class PartnerCb(CallbackData, prefix="partner"):
+    action: str  # accept | decline
+    requester_id: int
+
+
+class AdminCb(CallbackData, prefix="admin"):
+    action: str  # test_llm | menu

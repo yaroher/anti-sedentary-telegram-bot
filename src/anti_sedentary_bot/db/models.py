@@ -200,17 +200,23 @@ class BusyPeriod(Model):
 
 
 class Partnership(Model):
+    """Bidirectional accountability link. Two rows per partnership (one per direction).
+
+    `accepted` becomes True only after the other user clicks Accept.
+    `active` is a kill-switch for /unpartner.
+    """
+
     id = fields.IntField(pk=True)
-    user_a: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
-        "models.User", related_name="partnerships_as_a", on_delete=fields.CASCADE
-    )
-    user_b: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
-        "models.User", related_name="partnerships_as_b", on_delete=fields.CASCADE
-    )
+    user_id_a = fields.BigIntField()
+    user_id_b = fields.BigIntField()
+    active = fields.BooleanField(default=True)
+    accepted = fields.BooleanField(default=False)
     created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "partnerships"
+        unique_together = (("user_id_a", "user_id_b"),)
+        indexes = (("user_id_a", "active", "accepted"),)
 
 
 class HabitTrackEvent(Model):
