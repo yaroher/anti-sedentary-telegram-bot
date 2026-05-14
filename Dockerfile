@@ -11,7 +11,7 @@ WORKDIR /build
 COPY pyproject.toml uv.lock ./
 
 # Export prod deps to a plain requirements.txt, then install into /install
-RUN uv export --no-dev --format requirements-txt --no-hashes -o requirements.txt \
+RUN uv export --no-dev --no-emit-project --format requirements-txt --no-hashes -o requirements.txt \
  && pip install --no-cache-dir --target /install -r requirements.txt
 
 # ── runtime ───────────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/install
+    PYTHONPATH=/install:/app/src
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends tini \
