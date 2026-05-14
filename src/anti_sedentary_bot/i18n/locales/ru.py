@@ -3,12 +3,12 @@ from __future__ import annotations
 STRINGS: dict[str, str] = {
     # menu
     "menu.title": "Главное меню:",
-    "menu.day_start": "▶️ Начать/продолжить день",
+    "menu.day_start": "🚀 Задание сейчас",
     "menu.stats": "📊 Статистика",
     "menu.schedule": "⏰ Расписание",
     "menu.flavor": "🎭 Тон бота",
     "menu.interval": "⏱ Интервал заданий",
-    "menu.toggle": "⏸ Пауза / включить",
+    "menu.toggle": "🔘 Бот: вкл / пауза",
     "menu.language": "🌐 Язык",
     "menu.back": "⬅️ Назад",
     # start
