@@ -84,3 +84,84 @@ async def snooze(task: Task, minutes: int) -> Task | None:
     task.unlock_at = task.unlock_at + timedelta(minutes=minutes)
     await task.save(update_fields=["snooze_count", "unlock_at"])
     return task
+
+
+# ---------------------------------------------------------------------------
+# Effectiveness additions
+# ---------------------------------------------------------------------------
+
+
+async def record_completion_metrics(task: Task, time_to_complete_seconds: int) -> None:
+    """Persist the wall-clock seconds it took to complete *task*."""
+    task.time_to_complete_seconds = max(0, time_to_complete_seconds)
+    await task.save(update_fields=["time_to_complete_seconds"])
+
+
+async def set_difficulty_rating(task_id: int, user_id: int, rating: int) -> None:
+    """Set difficulty_rating on the given task (1-10 scale)."""
+    await Task.filter(id=task_id, user_id=user_id).update(difficulty_rating=rating)
+
+
+async def add_suspicion_reason(task: Task, reason: str) -> None:
+    """Append *reason* to task.suspicion_reasons and persist."""
+    reasons: list = list(task.suspicion_reasons or [])
+    if reason not in reasons:
+        reasons.append(reason)
+    task.suspicion_reasons = reasons
+    await task.save(update_fields=["suspicion_reasons"])
+
+
+async def count_recent_short_answers(user: User, n: int = 5) -> int:
+    """Count how many of the last *n* completed tasks had a check_answer shorter than 6 chars."""
+    recent = (
+        await Task.filter(user=user, status=TaskStatus.COMPLETED, check_answer__not_isnull=True)
+        .order_by("-id")
+        .limit(n)
+    )
+    return sum(1 for t in recent if t.check_answer and len(t.check_answer) < 6)
+
+
+async def recent_completion_time_deltas(user: User, code: str, k: int = 10) -> list[int]:
+    """Return the last *k* time_to_complete_seconds for *code*, oldest first."""
+    rows = (
+        await Task.filter(
+            user=user,
+            exercise_code=code,
+            status=TaskStatus.COMPLETED,
+            time_to_complete_seconds__not_isnull=True,
+        )
+        .order_by("-id")
+        .limit(k)
+        .values_list("time_to_complete_seconds", flat=True)
+    )
+    return list(reversed(rows))
+
+
+async def recent_difficulty_ratings(user: User, code: str, k: int = 10) -> list[int]:
+    """Return the last *k* non-null difficulty ratings for *code*, oldest first."""
+    rows = (
+        await Task.filter(
+            user=user,
+            exercise_code=code,
+            status=TaskStatus.COMPLETED,
+            difficulty_rating__not_isnull=True,
+        )
+        .order_by("-id")
+        .limit(k)
+        .values_list("difficulty_rating", flat=True)
+    )
+    return list(reversed(rows))
+
+
+async def count_last_n_days(user: User, days: int) -> dict:
+    """Return completed/skipped/failed counts over the last *days* days."""
+    from datetime import timedelta
+
+    from ..utils.time import today as _today
+
+    cutoff = _today() - timedelta(days=days)
+    tasks = await Task.filter(user=user, day__gte=cutoff)
+    completed = sum(1 for t in tasks if t.status == TaskStatus.COMPLETED)
+    skipped = sum(1 for t in tasks if t.status == TaskStatus.SKIPPED)
+    failed = sum(1 for t in tasks if t.status == TaskStatus.FAILED)
+    return {"completed": completed, "skipped": skipped, "failed": failed}

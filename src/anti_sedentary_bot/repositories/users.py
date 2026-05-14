@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from aiogram.types import User as TgUser
 from loguru import logger
@@ -103,3 +103,88 @@ async def restore(user: User) -> None:
     user.is_deleted = False
     user.deleted_at = None
     await user.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
+
+
+# ---------------------------------------------------------------------------
+# Effectiveness additions
+# ---------------------------------------------------------------------------
+
+
+async def set_difficulty_offset(user: User, exercise_code: str, delta: int) -> None:
+    """Bump the personal difficulty offset for *exercise_code* by *delta* and persist."""
+    offsets: dict = dict(user.personal_difficulty_offsets or {})
+    offsets[exercise_code] = offsets.get(exercise_code, 0) + delta
+    user.personal_difficulty_offsets = offsets
+    await user.save(update_fields=["personal_difficulty_offsets", "updated_at"])
+
+
+def get_difficulty_offset(user: User, exercise_code: str) -> int:
+    """Return the current difficulty offset for *exercise_code* (0 if not set)."""
+    offsets: dict = user.personal_difficulty_offsets or {}
+    return int(offsets.get(exercise_code, 0))
+
+
+async def mark_baseline_completed(user: User, when: datetime | None = None) -> None:
+    user.baseline_completed_at = when or datetime.now(tz=UTC)
+    await user.save(update_fields=["baseline_completed_at", "updated_at"])
+
+
+async def set_daily_goal(user: User, goal: int) -> None:
+    user.daily_goal = goal
+    await user.save(update_fields=["daily_goal", "updated_at"])
+
+
+async def use_streak_insurance(user: User, day: date) -> None:
+    user.streak_insurance_used_at = day
+    await user.save(update_fields=["streak_insurance_used_at", "updated_at"])
+
+
+def streak_insurance_available_this_week(user: User, today_date: date) -> bool:
+    """Return True if no insurance was used in the current ISO week."""
+    if user.streak_insurance_used_at is None:
+        return True
+    return user.streak_insurance_used_at.isocalendar()[:2] != today_date.isocalendar()[:2]
+
+
+async def set_last_deload(user: User, day: date) -> None:
+    user.last_deload_at = day
+    await user.save(update_fields=["last_deload_at", "updated_at"])
+
+
+async def update_user_facts(user: User, facts_text: str) -> None:
+    user.user_facts = facts_text
+    await user.save(update_fields=["user_facts", "updated_at"])
+
+
+async def set_health_track(
+    user: User,
+    kind: str,
+    enabled: bool,
+    minutes: int | None = None,
+) -> None:
+    """Toggle eye / hydration / posture tracking for *user*.
+
+    *kind* must be one of ``"eye"``, ``"hydration"``, ``"posture"``.
+    If *minutes* is provided it also updates the corresponding interval field.
+    """
+    kind_map = {
+        "eye": ("eye_break_enabled", "eye_break_minutes"),
+        "hydration": ("hydration_enabled", "hydration_minutes"),
+        "posture": ("posture_enabled", "posture_minutes"),
+    }
+    if kind not in kind_map:
+        raise ValueError(f"Unknown health track kind: {kind!r}")
+    enabled_field, minutes_field = kind_map[kind]
+    setattr(user, enabled_field, enabled)
+    update_fields = [enabled_field, "updated_at"]
+    if minutes is not None:
+        setattr(user, minutes_field, minutes)
+        update_fields.append(minutes_field)
+    await user.save(update_fields=update_fields)
+
+
+async def find_by_username(username: str) -> User | None:
+    """Find a user by Telegram username (case-insensitive, without leading @)."""
+    clean = username.lstrip("@").lower()
+    # Tortoise supports __iexact on CharField via the filter shorthand
+    return await User.filter(username__iexact=clean, is_deleted=False).first()
