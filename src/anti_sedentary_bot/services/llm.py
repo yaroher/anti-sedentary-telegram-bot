@@ -56,14 +56,20 @@ def _sanitize_content(content: str) -> str:
     return "\n".join(line[:_MAX_LINE_LEN] for line in lines)
 
 
-async def llm_text(user: User, purpose: str, payload: dict[str, Any]) -> str:
+async def llm_text(
+    user: User,
+    purpose: str,
+    payload: dict[str, Any],
+    *,
+    fallback: str | None = None,
+) -> str:
     flavor = FLAVORS.get(user.flavor) or FLAVORS[DEFAULT_FLAVOR]
     flavor_l = flavor.for_locale(user.language)
-    fallback = random.choice(flavor_l.phrases)
+    fb = fallback if fallback is not None else random.choice(flavor_l.phrases)
 
     client = get_client()
     if client is None:
-        return fallback
+        return fb
 
     state = await get_daily_state(user)
     history = await recent_messages(user, limit=10)
@@ -105,7 +111,7 @@ async def llm_text(user: User, purpose: str, payload: dict[str, Any]) -> str:
             max_tokens=220,
         )
         text = (resp.choices[0].message.content or "").strip()
-        return text or fallback
+        return text or fb
     except Exception as exc:
         logger.warning("LLM failed: {}", exc)
-        return fallback
+        return fb

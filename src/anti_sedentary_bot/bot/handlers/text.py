@@ -84,6 +84,7 @@ async def on_check_answer(message: Message, state: FSMContext, user: User) -> No
         user,
         "respond to check answer",
         {"answer": text, "suspicious": suspicious},
+        fallback=t(user.language, "fallback.check_reaction"),
     )
     await add_message(user, MessageRole.ASSISTANT, reaction)
     await message.answer(reaction, reply_markup=main_menu(user.language))
@@ -109,7 +110,12 @@ async def on_coach_message(message: Message, state: FSMContext, user: User) -> N
         return
 
     await msg_repo.add(user, MessageRole.USER, text)
-    reply = await llm_text(user, "coach mode chat with the user, short reply", {"user_message": text})
+    reply = await llm_text(
+        user,
+        "coach mode chat with the user, short reply",
+        {"user_message": text},
+        fallback=t(user.language, "fallback.coach"),
+    )
     await msg_repo.add(user, MessageRole.ASSISTANT, reply)
 
     await state.update_data(turns=turns + 1)

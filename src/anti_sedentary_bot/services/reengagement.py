@@ -50,9 +50,8 @@ async def reengage(bot: Bot) -> int:
                 user,
                 "re-engage softly after silence",
                 {"days_silent": last_active_days or 3},
+                fallback=t(user.language, "fallback.reengage"),
             )
-            if not msg:
-                msg = t(user.language, "reengage.silent")
             await notify_simple(bot, user, msg)
             await user_repo.mark_reengaged(user)
             sent += 1

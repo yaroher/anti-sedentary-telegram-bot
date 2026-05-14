@@ -7,6 +7,7 @@ from ...db.models import User
 from ...i18n import t
 from ...repositories import habit_events as he_repo
 from ...repositories import users as user_repo
+from .._ui import edit_or_send
 from ..callbacks import HealthCb, MenuCb
 from ..keyboards import health_keyboard
 
@@ -21,7 +22,8 @@ router = Router(name="health")
 @router.callback_query(MenuCb.filter(F.action == "settings_health"))
 async def cb_settings_health(query: CallbackQuery, user: User) -> None:
     assert query.message is not None
-    await query.message.answer(
+    await edit_or_send(
+        query.message,
         t(user.language, "settings.health.prompt"),
         reply_markup=health_keyboard(user, user.language),
     )

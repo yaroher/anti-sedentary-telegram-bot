@@ -39,9 +39,18 @@ async def cb_task_done(query: CallbackQuery, callback_data: TaskCb, state: FSMCo
             reply_markup=question_keyboard(user.language, task.id),
         )
     else:
-        msg = await llm_text(user, "praise the user for completion", {"task": task.title})
+        msg = await llm_text(
+            user,
+            "praise the user for completion",
+            {"task": task.title},
+            fallback=t(user.language, "fallback.praise"),
+        )
         await add_message(user, MessageRole.ASSISTANT, msg)
-        await query.message.answer(f"✅ {msg}", reply_markup=main_menu(user.language))
+        # Edit the original task message so the chat doesn't fill up with menus.
+        try:
+            await query.message.edit_text(f"✅ {msg}")
+        except Exception:
+            await query.message.answer(f"✅ {msg}")
     await query.answer()
 
 
@@ -55,11 +64,13 @@ async def cb_task_skip(query: CallbackQuery, callback_data: TaskCb, user: User) 
     hard = callback_data.action == "hard"
     await skip_task(user, task, hard=hard)
     purpose = "respond to too-hard task" if hard else "respond to skip"
-    msg = await llm_text(user, purpose, {"task": task.title, "hard": hard})
-    await query.message.answer(
-        t(user.language, "task.skipped_logged", msg=msg),
-        reply_markup=main_menu(user.language),
-    )
+    fb_key = "fallback.hard" if hard else "fallback.skip"
+    msg = await llm_text(user, purpose, {"task": task.title, "hard": hard}, fallback=t(user.language, fb_key))
+    text = t(user.language, "task.skipped_logged", msg=msg)
+    try:
+        await query.message.edit_text(text)
+    except Exception:
+        await query.message.answer(text, reply_markup=main_menu(user.language))
     await query.answer()
 
 

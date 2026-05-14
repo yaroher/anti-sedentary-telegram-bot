@@ -229,4 +229,14 @@ STRINGS: dict[str, str] = {
     "admin.llm_disabled": "LLM выключен или не задан API ключ.\nПровайдер: <code>{provider}</code>, Модель: <code>{model}</code>",
     "admin.llm_ok": "✅ <b>LLM OK</b>\nПровайдер: <code>{provider}</code>\nМодель: <code>{model}</code>\nBase URL: <code>{base_url}</code>\nЗадержка: {latency_ms} мс\nОтвет: <code>{reply}</code>",
     "admin.llm_error": "❌ <b>Ошибка LLM</b>\nПровайдер: <code>{provider}</code>\nМодель: <code>{model}</code>\n<pre>{error}</pre>",
+    # llm fallbacks
+    "fallback.praise": "Выполнено. Молодец.",
+    "fallback.skip": "Пропустил. Записал.",
+    "fallback.hard": "Слишком тяжело — учту, в следующий раз полегче.",
+    "fallback.fail": "Пропустил окно. Скоро будет новое задание.",
+    "fallback.nudge": "Эй, всё ещё жду выполнения.",
+    "fallback.check_reaction": "Принято.",
+    "fallback.reengage": "Эй, готов снова двигаться?",
+    "fallback.goal_reached": "Дневная цель выполнена. Свободен на сегодня.",
+    "fallback.coach": "(LLM сейчас недоступен — попробуй через минуту.)",
 }

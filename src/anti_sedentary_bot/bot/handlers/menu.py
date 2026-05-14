@@ -11,6 +11,7 @@ from ...i18n import t
 from ...services.tasks import active_task, schedule_next_task, send_task
 from ...services.user import get_daily_state
 from ...utils.time import human_time_left, in_work_window, now, work_window_bounds
+from .._ui import edit_or_send
 from ..callbacks import MenuCb
 from ..keyboards import main_menu
 
@@ -33,14 +34,15 @@ async def cb_day_start(query: CallbackQuery, bot: Bot, user: User) -> None:
 
     if in_work_window(user.day_start, user.day_end):
         await query.answer(t(user.language, "day.work_mode_on"))
-        await query.message.answer(t(user.language, "day.in_window"))
+        await edit_or_send(query.message, t(user.language, "day.in_window"))
         await send_task(bot, user, reason="manual_start")
     else:
         await schedule_next_task(user)
         start_dt, _ = work_window_bounds(user.day_start, user.day_end)
         if start_dt < now():
             start_dt += timedelta(days=1)
-        await query.message.answer(
+        await edit_or_send(
+            query.message,
             t(user.language, "day.out_of_window", when=start_dt.strftime("%H:%M")),
             reply_markup=main_menu(user.language),
         )
@@ -71,7 +73,7 @@ async def cb_stats(query: CallbackQuery, user: User) -> None:
         pressure=state.pressure_level,
         active_line=active_line,
     )
-    await query.message.answer(body, reply_markup=main_menu(user.language))
+    await edit_or_send(query.message, body, reply_markup=main_menu(user.language))
     await query.answer()
 
 
@@ -79,5 +81,5 @@ async def cb_stats(query: CallbackQuery, user: User) -> None:
 async def cb_talk_end(query: CallbackQuery, user: User, state: FSMContext) -> None:
     assert query.message is not None
     await state.clear()
-    await query.message.answer(t(user.language, "talk.ended"), reply_markup=main_menu(user.language))
+    await edit_or_send(query.message, t(user.language, "talk.ended"), reply_markup=main_menu(user.language))
     await query.answer()

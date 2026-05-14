@@ -183,7 +183,12 @@ async def complete_task_with_bot(bot: Bot, user: User, task: Task) -> tuple[Task
     # Daily goal reached?
     if state.completed_count >= user.daily_goal and not state.daily_goal_reached:
         await ds_repo.mark_goal_reached(state)
-        msg = await llm_text(user, "daily goal reached", {"goal": user.daily_goal})
+        msg = await llm_text(
+            user,
+            "daily goal reached",
+            {"goal": user.daily_goal},
+            fallback=t(user.language, "fallback.goal_reached"),
+        )
         goal_text = t(user.language, "goal.reached", msg=msg)
         await notify_simple(bot, user, goal_text)
         await ds_repo.set_next_task_at(state, None)
@@ -264,7 +269,12 @@ async def maybe_nudge_or_fail(bot: Bot, user: User, task: Task) -> None:
 
     if age_minutes >= settings.fail_after_minutes:
         await fail_task_with_bot(bot, user, task)
-        msg = await llm_text(user, "task failed by neglect", {"task": task.title})
+        msg = await llm_text(
+            user,
+            "task failed by neglect",
+            {"task": task.title},
+            fallback=t(user.language, "fallback.fail"),
+        )
         await notify_fail(bot, user, msg)
         await _notify_partner_fail(bot, user, task)
         return
@@ -280,6 +290,7 @@ async def maybe_nudge_or_fail(bot: Bot, user: User, task: Task) -> None:
                 "instruction": task.instruction,
                 "nudge_count": task.nudge_count,
             },
+            fallback=t(user.language, "fallback.nudge"),
         )
         await notify_nudge(bot, user, task, msg)
 

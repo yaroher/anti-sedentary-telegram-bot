@@ -227,4 +227,14 @@ STRINGS: dict[str, str] = {
     "admin.llm_disabled": "LLM is disabled or no API key set.\nProvider: <code>{provider}</code>, Model: <code>{model}</code>",
     "admin.llm_ok": "✅ <b>LLM OK</b>\nProvider: <code>{provider}</code>\nModel: <code>{model}</code>\nBase URL: <code>{base_url}</code>\nLatency: {latency_ms} ms\nReply: <code>{reply}</code>",
     "admin.llm_error": "❌ <b>LLM error</b>\nProvider: <code>{provider}</code>\nModel: <code>{model}</code>\n<pre>{error}</pre>",
+    # llm fallbacks
+    "fallback.praise": "Done. Nice.",
+    "fallback.skip": "Skipped. Logged.",
+    "fallback.hard": "Too hard noted. Easier next time.",
+    "fallback.fail": "Missed it. Next one coming.",
+    "fallback.nudge": "Hey, still waiting on this one.",
+    "fallback.check_reaction": "Got it.",
+    "fallback.reengage": "Hey, ready to move again?",
+    "fallback.goal_reached": "Daily goal reached. Free for today.",
+    "fallback.coach": "(LLM unavailable right now — try again in a minute.)",
 }
