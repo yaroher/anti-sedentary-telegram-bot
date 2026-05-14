@@ -42,3 +42,7 @@ class SnoozeCb(CallbackData, prefix="snooze"):
 class QuietCb(CallbackData, prefix="quiet"):
     # start/end are "HH-MM" or "off"
     value: str
+
+
+class HealthCb(CallbackData, prefix="health"):
+    kind: str  # eye | hydration | posture

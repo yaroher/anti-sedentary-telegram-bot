@@ -85,10 +85,28 @@ def build_scheduler(bot: Bot) -> AsyncIOScheduler:
         replace_existing=True,
     )
 
+    from .health_tracks import tick_eye, tick_hydration, tick_posture
+
+    for job_id, fn in (
+        ("health_eye", tick_eye),
+        ("health_hydration", tick_hydration),
+        ("health_posture", tick_posture),
+    ):
+        scheduler.add_job(
+            fn,
+            IntervalTrigger(seconds=settings.health_tick_seconds),
+            kwargs={"bot": bot},
+            id=job_id,
+            max_instances=1,
+            coalesce=True,
+            replace_existing=True,
+        )
+
     logger.info(
-        "Scheduler built: tick={}s, cleanup at {:02d}:00 {}",
+        "Scheduler built: tick={}s, cleanup at {:02d}:00 {}, health tick={}s",
         settings.scheduler_tick_seconds,
         settings.cleanup_hour,
         settings.timezone,
+        settings.health_tick_seconds,
     )
     return scheduler

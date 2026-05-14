@@ -221,6 +221,8 @@ async def skip_task_with_bot(bot: Bot, user: User, task: Task, hard: bool) -> Ta
     else:
         await skip_task(user, task, hard)
 
+    if hard:
+        await _notify_partner_skip(bot, user, task)
     return task
 
 
@@ -264,6 +266,7 @@ async def maybe_nudge_or_fail(bot: Bot, user: User, task: Task) -> None:
         await fail_task_with_bot(bot, user, task)
         msg = await llm_text(user, "task failed by neglect", {"task": task.title})
         await notify_fail(bot, user, msg)
+        await _notify_partner_fail(bot, user, task)
         return
 
     threshold = settings.nudge_after_minutes * (task.nudge_count + 1)
@@ -351,3 +354,37 @@ __all__ = [
     "skip_task_with_bot",
     "tick_scheduler",
 ]
+
+
+async def _notify_partner_fail(bot: Bot, user: User, task: Task) -> None:
+    """Fire-and-forget partner notification — never raises."""
+    from ..bot.notifications import notify_simple
+    from ..repositories import partnerships as partner_repo
+
+    try:
+        partner = await partner_repo.partner_of(user)
+        if partner and partner.is_enabled and not partner.is_deleted:
+            my_name = user.first_name or user.username or str(user.user_id)
+            msg = t(partner.language, "partner.notify_fail", name=my_name, title=task.title)
+            await notify_simple(bot, partner, msg)
+    except Exception:
+        from loguru import logger
+
+        logger.exception("partner notify_fail failed")
+
+
+async def _notify_partner_skip(bot: Bot, user: User, task: Task) -> None:
+    """Fire-and-forget partner notification for hard skip — never raises."""
+    from ..bot.notifications import notify_simple
+    from ..repositories import partnerships as partner_repo
+
+    try:
+        partner = await partner_repo.partner_of(user)
+        if partner and partner.is_enabled and not partner.is_deleted:
+            my_name = user.first_name or user.username or str(user.user_id)
+            msg = t(partner.language, "partner.notify_skip", name=my_name, title=task.title)
+            await notify_simple(bot, partner, msg)
+    except Exception:
+        from loguru import logger
+
+        logger.exception("partner notify_skip failed")

@@ -222,3 +222,65 @@ async def cmd_talk(message: Message, user: User, state: FSMContext) -> None:
     b.button(text=t(user.language, "talk.end_btn"), callback_data=MenuCb(action="talk_end"))
     b.adjust(1)
     await message.answer(t(user.language, "talk.intro"), reply_markup=b.as_markup())
+
+
+@router.message(Command("water"))
+async def cmd_water(message: Message, user: User) -> None:
+    from ...repositories import daily_states as ds_repo
+    from ...repositories import habit_events as he_repo
+    from ...services.user import ensure_daily_state
+
+    await he_repo.record(user, "hydration")
+    state = await ensure_daily_state(user)
+    await ds_repo.bump_water(state)
+    await message.answer(t(user.language, "health.hydration.count", count=state.water_count))
+
+
+@router.message(Command("partner"))
+async def cmd_partner(message: Message, bot, user: User) -> None:
+    from ...bot.notifications import notify_simple
+    from ...repositories import partnerships as partner_repo
+
+    args = (message.text or "").split(maxsplit=1)
+    if len(args) < 2 or not args[1].strip():
+        partner = await partner_repo.partner_of(user)
+        if partner:
+            name = partner.first_name or partner.username or str(partner.user_id)
+            await message.answer(t(user.language, "partner.current", name=name))
+        else:
+            await message.answer(t(user.language, "partner.help"))
+        return
+
+    arg = args[1].strip().lstrip("@")
+    if arg.lower() == (user.username or "").lower() or arg == str(user.user_id):
+        await message.answer(t(user.language, "partner.self"))
+        return
+
+    other = await user_repo.find_by_username(arg)
+    if other is None:
+        await message.answer(t(user.language, "partner.not_found", username=arg))
+        return
+
+    await partner_repo.pair(user, other)
+    name = other.first_name or other.username or str(other.user_id)
+    await message.answer(t(user.language, "partner.paired", name=name))
+
+    my_name = user.first_name or user.username or str(user.user_id)
+    await notify_simple(bot, other, t(other.language, "partner.added_by", name=my_name))
+
+
+@router.message(Command("unpartner"))
+async def cmd_unpartner(message: Message, bot, user: User) -> None:
+    from ...bot.notifications import notify_simple
+    from ...repositories import partnerships as partner_repo
+
+    partner = await partner_repo.partner_of(user)
+    if partner is None:
+        await message.answer(t(user.language, "partner.none"))
+        return
+
+    await partner_repo.unpair(user, partner)
+    await message.answer(t(user.language, "partner.unpaired"))
+
+    my_name = user.first_name or user.username or str(user.user_id)
+    await notify_simple(bot, partner, t(partner.language, "partner.partner_unpaired", name=my_name))

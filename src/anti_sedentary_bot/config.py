@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     throttle_rate_seconds: float = 0.7
     scheduler_concurrency: int = 20
+    health_tick_seconds: int = 60
 
     # Message retention
     message_retention_days: int = 30

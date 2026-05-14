@@ -71,3 +71,17 @@ async def notify_badge(bot: Bot, user: User, code: str) -> None:
     unlocked = t(user.language, "badge.unlocked")
     text = f"{unlocked}\n\n{badge_text}" if badge_text else unlocked
     await safe_send(lambda: bot.send_message(user.user_id, text))
+
+
+async def notify_health(bot: Bot, user: User, kind: str) -> None:
+    """Send a health-track reminder with a Done button."""
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from .callbacks import HealthCb
+
+    b = InlineKeyboardBuilder()
+    b.button(text=t(user.language, "health.btn_done"), callback_data=HealthCb(kind=kind))
+    markup = b.as_markup()
+
+    msg = t(user.language, f"health.{kind}.message")
+    await safe_send(lambda: bot.send_message(user.user_id, msg, reply_markup=markup))

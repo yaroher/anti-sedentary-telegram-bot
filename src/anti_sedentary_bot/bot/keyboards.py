@@ -28,6 +28,30 @@ def main_menu(locale: str) -> InlineKeyboardMarkup:
     b.button(text=t(locale, "menu.toggle"), callback_data=MenuCb(action="settings_toggle"))
     b.button(text=t(locale, "menu.language"), callback_data=MenuCb(action="settings_language"))
     b.button(text=t(locale, "menu.quiet"), callback_data=MenuCb(action="settings_quiet"))
+    b.button(text=t(locale, "menu.health"), callback_data=MenuCb(action="settings_health"))
+    b.adjust(1)
+    return b.as_markup()
+
+
+def health_keyboard(user, locale: str) -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+
+    def _on_off(enabled: bool) -> str:
+        return t(locale, "health.on") if enabled else t(locale, "health.off")
+
+    b.button(
+        text=f"{t(locale, 'health.eye.label')}: {_on_off(user.eye_break_enabled)}",
+        callback_data=MenuCb(action="toggle_eye"),
+    )
+    b.button(
+        text=f"{t(locale, 'health.hydration.label')}: {_on_off(user.hydration_enabled)}",
+        callback_data=MenuCb(action="toggle_hydration"),
+    )
+    b.button(
+        text=f"{t(locale, 'health.posture.label')}: {_on_off(user.posture_enabled)}",
+        callback_data=MenuCb(action="toggle_posture"),
+    )
+    b.button(text=t(locale, "menu.back"), callback_data=MenuCb(action="menu"))
     b.adjust(1)
     return b.as_markup()
 
