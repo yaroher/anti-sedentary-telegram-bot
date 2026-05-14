@@ -89,6 +89,36 @@ async def on_check_answer(message: Message, state: FSMContext, user: User) -> No
     await message.answer(reaction, reply_markup=main_menu(user.language))
 
 
+_MAX_COACH_TURNS = 20
+
+
+@router.message(InputStates.talking_to_coach, F.text)
+async def on_coach_message(message: Message, state: FSMContext, user: User) -> None:
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from ...repositories import messages as msg_repo
+    from ..callbacks import MenuCb
+
+    text = (message.text or "").strip()
+    data = await state.get_data()
+    turns = int(data.get("turns", 0))
+
+    if turns >= _MAX_COACH_TURNS:
+        await state.clear()
+        await message.answer(t(user.language, "talk.timeout"), reply_markup=main_menu(user.language))
+        return
+
+    await msg_repo.add(user, MessageRole.USER, text)
+    reply = await llm_text(user, "coach mode chat with the user, short reply", {"user_message": text})
+    await msg_repo.add(user, MessageRole.ASSISTANT, reply)
+
+    await state.update_data(turns=turns + 1)
+    b = InlineKeyboardBuilder()
+    b.button(text=t(user.language, "talk.end_btn"), callback_data=MenuCb(action="talk_end"))
+    b.adjust(1)
+    await message.answer(reply, reply_markup=b.as_markup())
+
+
 @router.message(F.text)
 async def on_text_fallback(message: Message, user: User) -> None:
     await message.answer(t(user.language, "text.fallback"), reply_markup=main_menu(user.language))

@@ -7,3 +7,4 @@ class InputStates(StatesGroup):
     onboarding_language = State()
     waiting_schedule = State()
     waiting_check_answer = State()
+    talking_to_coach = State()

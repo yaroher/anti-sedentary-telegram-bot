@@ -139,4 +139,49 @@ STRINGS: dict[str, str] = {
     "anti_cheat.hard_check_1": ("Перед началом — что первым бросилось тебе в глаза в комнате?"),
     "anti_cheat.hard_check_2": ("Во время задания — какой звук ты слышал на фоне?"),
     "anti_cheat.hard_check_3": ("Какой цвет или предмет был на уровне глаз во время упражнения?"),
+    # badges / achievements
+    "badge.unlocked": "🏅 Значок получен!",
+    "badge.streak_3": "🔥 Серия 3 задания — ты в ударе!",
+    "badge.streak_7": "🔥 Серия 7 заданий — целая неделя momentum!",
+    "badge.streak_30": "🔥 Серия 30 заданий — неудержимый!",
+    "badge.streak_100": "🔥 Серия 100 заданий — легенда!",
+    "badge.completed_50": "✅ 50 заданий выполнено — прочный фундамент!",
+    "badge.completed_200": "✅ 200 заданий — ты серьёзен!",
+    "badge.completed_1000": "✅ 1000 заданий — элитный двигатель!",
+    "badge.early_bird": "🌅 Ранняя пташка — задания до 10:00 в 5+ дней!",
+    "badge.night_owl": "🦉 Сова — активен после 18:00 в 5+ дней!",
+    "badge.goal_streak_7": "🎯 Цель выполнена 7 дней подряд!",
+    # daily summary
+    "summary.daily": (
+        "<b>Итоги дня</b>\n"
+        "✅ Выполнено: {completed}\n"
+        "⏭ Пропущено: {skipped}\n"
+        "❌ Провалено: {failed}\n"
+        "🔥 Streak: {streak}  |  Лучший: {best_streak}\n\n"
+        "{goal_status}"
+    ),
+    "summary.goal_yes": "🎯 Цель дня достигнута — молодец!",
+    "summary.goal_no": "📌 Цель дня не достигнута — попробуй завтра.",
+    # insights
+    "insights.header": "<b>Твоя персональная аналитика</b>",
+    "insights.best_hour": "⭐ Лучший час: {hour}",
+    "insights.worst_hour": "⚠️ Самый сложный час: {hour}",
+    "insights.trends_header": "<b>Тренды по упражнениям (сложность)</b>",
+    "insights.easier": "становится легче ↓",
+    "insights.harder": "становится сложнее ↑",
+    "insights.same": "стабильно →",
+    "insights.no_data": "Данных пока недостаточно — выполняй задания!",
+    # re-engagement
+    "reengage.silent": "Привет! Давно не виделись. Готов вернуться в строй? 💪",
+    # talk / coach mode
+    "talk.intro": (
+        "Режим тренера включён. Задавай вопросы о своей рутине, трудностях или целях.\n"
+        "Ответы будут короткими и по делу."
+    ),
+    "talk.end_btn": "Завершить чат",
+    "talk.ended": "Чат завершён. Вперёд, двигаться! 💪",
+    "talk.timeout": "Долго болтаем — продолжим в другой раз. Пора двигаться!",
+    # slash command descriptions (new)
+    "cmd.insights.desc": "Тепловая карта и тренды",
+    "cmd.talk.desc": "Чат с тренером",
 }

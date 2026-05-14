@@ -215,3 +215,30 @@ async def set_health_track(
 async def update_user_facts(user: User, facts_text: str) -> None:
     user.user_facts = facts_text
     await user.save(update_fields=["user_facts", "updated_at"])
+
+
+async def mark_reengaged(user: User, when: datetime | None = None) -> None:
+    """Record that a re-engagement message was sent."""
+    user.reengaged_at = when or datetime.now(tz=UTC)
+    await user.save(update_fields=["reengaged_at", "updated_at"])
+
+
+async def list_dormant_for_reengagement(days_silent: int, cooldown_days: int = 7) -> list[User]:
+    """Return enabled, non-deleted users with no task activity in *days_silent* days
+    and no re-engagement message in the last *cooldown_days* days."""
+    from datetime import timedelta
+
+    cutoff_activity = datetime.now(tz=UTC) - timedelta(days=days_silent)
+    cutoff_reengage = datetime.now(tz=UTC) - timedelta(days=cooldown_days)
+    candidates = await User.filter(is_enabled=True, is_deleted=False).all()
+    result: list[User] = []
+    for u in candidates:
+        if u.reengaged_at is not None and u.reengaged_at > cutoff_reengage:
+            continue
+        # Lazy import to avoid circular
+        from ..db.models import DailyState
+
+        latest = await DailyState.filter(user_id=u.user_id).order_by("-day").first()
+        if latest is None or latest.last_task_at is None or latest.last_task_at < cutoff_activity:
+            result.append(u)
+    return result

@@ -145,3 +145,53 @@ async def _utc_now():
 
 
 from datetime import timedelta as _timedelta  # noqa: E402
+
+
+async def total_completed(user: User) -> int:
+    """Sum of completed_count across all DailyState rows for *user*."""
+    from tortoise.functions import Sum
+
+    result = await DailyState.filter(user=user).annotate(total=Sum("completed_count")).values("total")
+    if not result:
+        return 0
+    return int(result[0]["total"] or 0)
+
+
+async def consecutive_goal_days(user: User, daily_goal: int = 5) -> int:
+    """Count consecutive days up to today where completed_count >= daily_goal."""
+    from datetime import date as _date
+    from datetime import timedelta as _td
+
+    from ..utils.time import today as _today
+
+    cutoff = _today() - _td(days=90)
+    rows = (
+        await DailyState.filter(user=user, day__gte=cutoff).order_by("-day").values("day", "completed_count")
+    )
+    count = 0
+    expected: _date | None = _today()
+    for row in rows:
+        if row["day"] != expected:
+            break
+        if row["completed_count"] < daily_goal:
+            break
+        count += 1
+        expected = row["day"] - _td(days=1)
+    return count
+
+
+async def is_summary_sent_today(state: DailyState) -> bool:
+    """Return True if today's daily summary was sent (uses daily_summary_sent_at)."""
+    return state.daily_summary_sent_at is not None
+
+
+async def find_dormant_users(days: int = 3) -> list[User]:
+    """Return enabled, non-deleted users with no task activity for >= *days* days."""
+    from datetime import timedelta as _td
+
+    from ..utils.time import now as _now
+
+    cutoff = _now() - _td(days=days)
+    active_ids_qs = await DailyState.filter(last_task_at__gte=cutoff).values_list("user_id", flat=True)
+    active_ids = set(active_ids_qs)
+    return await User.filter(is_enabled=True, is_deleted=False).exclude(user_id__in=active_ids)

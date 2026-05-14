@@ -60,3 +60,14 @@ async def notify_anti_cheat_followup(bot: Bot, user: User, task: Task) -> None:
             text,
         )
     )
+
+
+async def notify_badge(bot: Bot, user: User, code: str) -> None:
+    from ..i18n import LOCALES, normalize_locale
+
+    loc = normalize_locale(user.language)
+    key = f"badge.{code}"
+    badge_text = LOCALES[loc].get(key) or LOCALES["en"].get(key, "")
+    unlocked = t(user.language, "badge.unlocked")
+    text = f"{unlocked}\n\n{badge_text}" if badge_text else unlocked
+    await safe_send(lambda: bot.send_message(user.user_id, text))

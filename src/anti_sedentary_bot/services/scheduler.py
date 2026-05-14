@@ -8,6 +8,9 @@ from loguru import logger
 
 from ..config import settings
 from .cleanup import run_message_cleanup
+from .daily_summary import send_daily_summary
+from .memory_bank import refresh_all_users
+from .reengagement import reengage
 from .summary import send_weekly_summary
 from .tasks import tick_scheduler
 
@@ -44,6 +47,39 @@ def build_scheduler(bot: Bot) -> AsyncIOScheduler:
         ),
         kwargs={"bot": bot},
         id="weekly_summary",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+
+    # Daily summary — hourly at :05, per-user end-of-day check inside
+    scheduler.add_job(
+        send_daily_summary,
+        CronTrigger(minute=5, timezone=settings.tz),
+        kwargs={"bot": bot},
+        id="daily_summary",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+
+    # Re-engagement — daily at 11:00
+    scheduler.add_job(
+        reengage,
+        CronTrigger(hour=11, minute=0, timezone=settings.tz),
+        kwargs={"bot": bot},
+        id="reengage",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+
+    # LLM memory bank — weekly Sunday at 22:00
+    scheduler.add_job(
+        refresh_all_users,
+        CronTrigger(day_of_week="sun", hour=22, minute=0, timezone=settings.tz),
+        kwargs={"bot": bot},
+        id="memory_bank",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

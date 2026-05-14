@@ -170,3 +170,63 @@ async def count_last_n_days(user: User, days: int) -> dict[str, int]:
 async def count_all_completed(user: User) -> int:
     """Return total number of completed tasks for user."""
     return await Task.filter(user=user, status=TaskStatus.COMPLETED).count()
+
+
+async def completed_in_window(user: User, since) -> list[tuple]:
+    rows = await Task.filter(
+        user=user,
+        status=TaskStatus.COMPLETED,
+        completed_at__gte=since,
+        completed_at__isnull=False,
+    ).values_list("completed_at", "exercise_code")
+    return list(rows)
+
+
+async def failed_skipped_in_window(user: User, since) -> list:
+    rows = await Task.filter(
+        user=user,
+        status__in=[TaskStatus.SKIPPED, TaskStatus.FAILED],
+        created_at__gte=since,
+    ).values_list("created_at", flat=True)
+    return list(rows)
+
+
+async def count_early_completions(user: User, before_hour: int = 10) -> int:
+    """Count distinct days with a completion before *before_hour* local time."""
+    from ..utils.time import to_tz
+
+    completed = await Task.filter(
+        user=user,
+        status=TaskStatus.COMPLETED,
+        completed_at__isnull=False,
+    ).values_list("completed_at", flat=True)
+    days_set: set = set()
+    for ts in completed:
+        local = to_tz(ts)
+        if local.hour < before_hour:
+            days_set.add(local.date())
+    return len(days_set)
+
+
+async def count_late_completions(user: User, from_hour: int = 18) -> int:
+    from ..utils.time import to_tz
+
+    completed = await Task.filter(
+        user=user,
+        status=TaskStatus.COMPLETED,
+        completed_at__isnull=False,
+    ).values_list("completed_at", flat=True)
+    days_set: set = set()
+    for ts in completed:
+        local = to_tz(ts)
+        if local.hour >= from_hour:
+            days_set.add(local.date())
+    return len(days_set)
+
+
+async def recent_completions_by_code(user: User, exercise_code: str, limit: int = 10) -> list:
+    return (
+        await Task.filter(user=user, exercise_code=exercise_code, status=TaskStatus.COMPLETED)
+        .order_by("-completed_at")
+        .limit(limit)
+    )

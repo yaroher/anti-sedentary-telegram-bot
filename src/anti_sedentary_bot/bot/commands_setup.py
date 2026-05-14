@@ -9,7 +9,7 @@ from ..i18n import t
 
 async def setup_bot_commands(bot: Bot) -> None:
     """Register bot command list for Telegram autocomplete in both supported languages."""
-    command_keys = ["menu", "stats", "pause", "resume", "lang", "quiet"]
+    command_keys = ["menu", "stats", "pause", "resume", "lang", "quiet", "insights", "talk"]
 
     for lang_code in ("en", "ru"):
         commands = [

@@ -137,4 +137,49 @@ STRINGS: dict[str, str] = {
     ),
     "anti_cheat.hard_check_2": ("During the exercise, what sound could you hear in the background?"),
     "anti_cheat.hard_check_3": ("What color or object was at eye level while you did the exercise?"),
+    # badges / achievements
+    "badge.unlocked": "🏅 Badge unlocked!",
+    "badge.streak_3": "🔥 3-task streak — you're on a roll!",
+    "badge.streak_7": "🔥 7-task streak — a full week of momentum!",
+    "badge.streak_30": "🔥 30-task streak — unstoppable!",
+    "badge.streak_100": "🔥 100-task streak — legendary!",
+    "badge.completed_50": "✅ 50 tasks done — solid foundation!",
+    "badge.completed_200": "✅ 200 tasks done — committed!",
+    "badge.completed_1000": "✅ 1000 tasks done — elite mover!",
+    "badge.early_bird": "🌅 Early bird — completing tasks before 10 AM on 5+ days!",
+    "badge.night_owl": "🦉 Night owl — active after 6 PM on 5+ days!",
+    "badge.goal_streak_7": "🎯 Goal streak — hit your daily goal 7 days in a row!",
+    # daily summary
+    "summary.daily": (
+        "<b>Today's wrap-up</b>\n"
+        "✅ Completed: {completed}\n"
+        "⏭ Skipped: {skipped}\n"
+        "❌ Failed: {failed}\n"
+        "🔥 Streak: {streak}  |  Best: {best_streak}\n\n"
+        "{goal_status}"
+    ),
+    "summary.goal_yes": "🎯 Daily goal reached — great work!",
+    "summary.goal_no": "📌 Daily goal not reached — try again tomorrow.",
+    # insights
+    "insights.header": "<b>Your personal insights</b>",
+    "insights.best_hour": "⭐ Best hour: {hour}",
+    "insights.worst_hour": "⚠️ Toughest hour: {hour}",
+    "insights.trends_header": "<b>Exercise trends (difficulty)</b>",
+    "insights.easier": "getting easier ↓",
+    "insights.harder": "getting harder ↑",
+    "insights.same": "stable →",
+    "insights.no_data": "Not enough data yet — keep completing tasks!",
+    # re-engagement
+    "reengage.silent": "Hey! It's been a while. Ready to get back on track? 💪",
+    # talk / coach mode
+    "talk.intro": (
+        "Coach mode on. Ask me anything about your routine, struggles, or goals.\n"
+        "I'll keep it short and practical."
+    ),
+    "talk.end_btn": "End chat",
+    "talk.ended": "Chat ended. Back to business! 💪",
+    "talk.timeout": "We've been chatting a while — let's pick it up another time. Back to moving!",
+    # slash command descriptions (new)
+    "cmd.insights.desc": "Personal heatmap and trends",
+    "cmd.talk.desc": "Chat with your coach",
 }

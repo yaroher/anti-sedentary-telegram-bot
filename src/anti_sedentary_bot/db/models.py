@@ -62,6 +62,9 @@ class User(Model):
     # LLM-curated stable facts about the user (injuries, preferences)
     user_facts = fields.TextField(null=True)
 
+    # Re-engagement cooldown — set when a re-engage message was sent
+    reengaged_at = fields.DatetimeField(null=True)
+
     class Meta:
         table = "users"
         indexes = (("is_enabled",),)

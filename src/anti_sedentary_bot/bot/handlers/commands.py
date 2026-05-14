@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from aiogram import Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from ...db.models import User
@@ -198,3 +199,26 @@ async def cmd_goal(message: Message, user: User) -> None:
         t(user.language, "settings.goal.saved", n=n),
         reply_markup=main_menu(user.language),
     )
+
+
+@router.message(Command("insights"))
+async def cmd_insights(message: Message, user: User) -> None:
+    from ...services.insights import build_insights
+
+    text = await build_insights(user)
+    await message.answer(text, reply_markup=main_menu(user.language))
+
+
+@router.message(Command("talk"))
+async def cmd_talk(message: Message, user: User, state: FSMContext) -> None:
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from ..callbacks import MenuCb
+    from ..states import InputStates
+
+    await state.set_state(InputStates.talking_to_coach)
+    await state.update_data(turns=0)
+    b = InlineKeyboardBuilder()
+    b.button(text=t(user.language, "talk.end_btn"), callback_data=MenuCb(action="talk_end"))
+    b.adjust(1)
+    await message.answer(t(user.language, "talk.intro"), reply_markup=b.as_markup())

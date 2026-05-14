@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from aiogram import Bot, F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from ...db.models import User
@@ -71,4 +72,12 @@ async def cb_stats(query: CallbackQuery, user: User) -> None:
         active_line=active_line,
     )
     await query.message.answer(body, reply_markup=main_menu(user.language))
+    await query.answer()
+
+
+@router.callback_query(MenuCb.filter(F.action == "talk_end"))
+async def cb_talk_end(query: CallbackQuery, user: User, state: FSMContext) -> None:
+    assert query.message is not None
+    await state.clear()
+    await query.message.answer(t(user.language, "talk.ended"), reply_markup=main_menu(user.language))
     await query.answer()
