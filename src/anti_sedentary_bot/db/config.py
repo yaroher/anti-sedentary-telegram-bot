@@ -24,7 +24,6 @@ else:
             "database": (parsed.path or "/").lstrip("/") or "postgres",
             "minsize": settings.db_pool_minsize,
             "maxsize": settings.db_pool_maxsize,
-            "connect_timeout": settings.db_connect_timeout,
         },
     }
 
