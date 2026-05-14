@@ -10,6 +10,9 @@ from ..config import settings
 from ..db.models import User
 from ..i18n import normalize_locale
 
+OFFSET_MIN = -5
+OFFSET_MAX = 10
+
 
 async def get_or_create_from_tg(tg_user: TgUser) -> tuple[User, bool]:
     """Get or create a User from a Telegram user object. Returns (user, created)."""
@@ -105,55 +108,85 @@ async def restore(user: User) -> None:
     await user.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
 
 
-# ---------------------------------------------------------------------------
-# Effectiveness additions
-# ---------------------------------------------------------------------------
-
-
-async def set_difficulty_offset(user: User, exercise_code: str, delta: int) -> None:
-    """Bump the personal difficulty offset for *exercise_code* by *delta* and persist."""
-    offsets: dict = dict(user.personal_difficulty_offsets or {})
-    offsets[exercise_code] = offsets.get(exercise_code, 0) + delta
-    user.personal_difficulty_offsets = offsets
-    await user.save(update_fields=["personal_difficulty_offsets", "updated_at"])
-
-
-def get_difficulty_offset(user: User, exercise_code: str) -> int:
-    """Return the current difficulty offset for *exercise_code* (0 if not set)."""
-    offsets: dict = user.personal_difficulty_offsets or {}
-    return int(offsets.get(exercise_code, 0))
-
-
-async def mark_baseline_completed(user: User, when: datetime | None = None) -> None:
-    user.baseline_completed_at = when or datetime.now(tz=UTC)
-    await user.save(update_fields=["baseline_completed_at", "updated_at"])
-
-
 async def set_daily_goal(user: User, goal: int) -> None:
     user.daily_goal = goal
     await user.save(update_fields=["daily_goal", "updated_at"])
 
 
-async def use_streak_insurance(user: User, day: date) -> None:
-    user.streak_insurance_used_at = day
-    await user.save(update_fields=["streak_insurance_used_at", "updated_at"])
+def get_difficulty_offset(user: User, exercise_code: str) -> int:
+    """Return the current difficulty offset for a given exercise code (default 0)."""
+    offsets: dict = user.personal_difficulty_offsets or {}
+    return int(offsets.get(exercise_code, 0))
 
 
-def streak_insurance_available_this_week(user: User, today_date: date) -> bool:
-    """Return True if no insurance was used in the current ISO week."""
-    if user.streak_insurance_used_at is None:
-        return True
-    return user.streak_insurance_used_at.isocalendar()[:2] != today_date.isocalendar()[:2]
+async def set_difficulty_offset(user: User, exercise_code: str, delta: int) -> int:
+    """Apply a relative delta to the difficulty offset and persist. Returns new offset."""
+    offsets: dict = dict(user.personal_difficulty_offsets or {})
+    current = int(offsets.get(exercise_code, 0))
+    new_val = max(OFFSET_MIN, min(OFFSET_MAX, current + delta))
+    offsets[exercise_code] = new_val
+    user.personal_difficulty_offsets = offsets
+    await user.save(update_fields=["personal_difficulty_offsets", "updated_at"])
+    return new_val
 
 
-async def set_last_deload(user: User, day: date) -> None:
-    user.last_deload_at = day
+async def init_baseline_offsets(user: User, codes: list[str]) -> None:
+    """Set baseline offset of -2 for strength/core exercises if not already set."""
+    offsets: dict = dict(user.personal_difficulty_offsets or {})
+    changed = False
+    for code in codes:
+        if code not in offsets:
+            offsets[code] = -2
+            changed = True
+    if changed:
+        user.personal_difficulty_offsets = offsets
+        await user.save(update_fields=["personal_difficulty_offsets", "updated_at"])
+
+
+async def mark_baseline_completed(user: User, when: datetime) -> None:
+    user.baseline_completed_at = when
+    await user.save(update_fields=["baseline_completed_at", "updated_at"])
+
+
+async def mark_deload(user: User, today: date) -> None:
+    user.last_deload_at = today
     await user.save(update_fields=["last_deload_at", "updated_at"])
 
 
-async def update_user_facts(user: User, facts_text: str) -> None:
-    user.user_facts = facts_text
-    await user.save(update_fields=["user_facts", "updated_at"])
+async def bump_all_offsets(user: User, codes: list[str], delta: int) -> int:
+    """Bump offsets for given codes by delta (clamped). Returns number changed."""
+    offsets: dict = dict(user.personal_difficulty_offsets or {})
+    changed = 0
+    for code in codes:
+        current = int(offsets.get(code, 0))
+        new_val = max(OFFSET_MIN, min(OFFSET_MAX, current + delta))
+        if new_val != current:
+            offsets[code] = new_val
+            changed += 1
+    user.personal_difficulty_offsets = offsets
+    await user.save(update_fields=["personal_difficulty_offsets", "updated_at"])
+    return changed
+
+
+async def streak_insurance_available_this_week(user: User, today: date) -> bool:
+    """Check if streak insurance is available this ISO week."""
+    iso = today.isocalendar()
+    week_str = f"{iso.year}-W{iso.week:02d}"
+    return user.streak_insurance_used_week != week_str
+
+
+async def use_streak_insurance(user: User, today: date) -> None:
+    """Mark streak insurance as used for this ISO week."""
+    iso = today.isocalendar()
+    week_str = f"{iso.year}-W{iso.week:02d}"
+    user.streak_insurance_used_week = week_str
+    await user.save(update_fields=["streak_insurance_used_week", "updated_at"])
+
+
+async def find_by_username(username: str) -> User | None:
+    """Find a user by Telegram username (case-insensitive, without leading @)."""
+    clean = username.lstrip("@").lower()
+    return await User.filter(username__iexact=clean, is_deleted=False).first()
 
 
 async def set_health_track(
@@ -162,11 +195,7 @@ async def set_health_track(
     enabled: bool,
     minutes: int | None = None,
 ) -> None:
-    """Toggle eye / hydration / posture tracking for *user*.
-
-    *kind* must be one of ``"eye"``, ``"hydration"``, ``"posture"``.
-    If *minutes* is provided it also updates the corresponding interval field.
-    """
+    """Toggle eye / hydration / posture tracking. kind in {"eye","hydration","posture"}."""
     kind_map = {
         "eye": ("eye_break_enabled", "eye_break_minutes"),
         "hydration": ("hydration_enabled", "hydration_minutes"),
@@ -183,8 +212,6 @@ async def set_health_track(
     await user.save(update_fields=update_fields)
 
 
-async def find_by_username(username: str) -> User | None:
-    """Find a user by Telegram username (case-insensitive, without leading @)."""
-    clean = username.lstrip("@").lower()
-    # Tortoise supports __iexact on CharField via the filter shorthand
-    return await User.filter(username__iexact=clean, is_deleted=False).first()
+async def update_user_facts(user: User, facts_text: str) -> None:
+    user.user_facts = facts_text
+    await user.save(update_fields=["user_facts", "updated_at"])

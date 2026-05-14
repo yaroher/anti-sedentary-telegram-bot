@@ -78,6 +78,9 @@ STRINGS: dict[str, str] = {
     "settings.toggle.enabled": "Бот включён.",
     "settings.toggle.paused": "Бот поставлен на паузу.",
     "settings.language.prompt": "Выбери язык:",
+    # daily goal
+    "settings.goal.saved": "Дневная цель: <b>{n} заданий</b>.",
+    "settings.goal.invalid": "Укажи цель от 1 до 20. Пример: /goal 5",
     # text fallback
     "text.fallback": "Я почти всё делаю кнопками. Открой меню 👇",
     "text.context_lost": "Контекст ответа потерян.",
@@ -90,6 +93,9 @@ STRINGS: dict[str, str] = {
     "cmd.resume.desc": "Возобновить напоминания",
     "cmd.lang.desc": "Сменить язык",
     "cmd.quiet.desc": "Тихие часы",
+    "cmd.did.desc": "Отметить как выполненное на N минут (по умолчанию 30)",
+    "cmd.busy.desc": "Установить период занятости (приостанавливает задания)",
+    "cmd.goal.desc": "Установить дневную цель",
     # weekly summary
     "summary.weekly": (
         "<b>Итоги за неделю</b>\n"
@@ -107,4 +113,30 @@ STRINGS: dict[str, str] = {
     "settings.quiet.prompt": "Выбери пресет тихих часов (задания будут паузироваться в этом окне):",
     "settings.quiet.saved": "Тихие часы: {start}–{end}.",
     "settings.quiet.off": "Тихие часы отключены.",
+    # smart silence — /did и /busy
+    "silence.did_logged": "Принято. Засчитано как выполненное. Пауза: {minutes} мин.",
+    "silence.busy_set": "Режим занятости: задания приостановлены на {minutes} мин.",
+    "silence.busy_capped": "Максимум {max} минут.",
+    "silence.busy_usage": "Использование: /busy <минуты>. Пример: /busy 60",
+    # baseline calibration
+    "baseline.graduation": (
+        "<b>Калибровка завершена!</b>\n\n"
+        "Базовый период закончен. Теперь сложность будет адаптироваться под тебя. "
+        "Отличная работа!"
+    ),
+    "baseline.progress": "Калибровка: выполнено {completed}/10 заданий. Продолжай!",
+    # daily goal
+    "goal.reached": ("<b>Дневная цель достигнута!</b>\n\n{msg}\n\nНа сегодня всё. До завтра!"),
+    # streak insurance
+    "streak.insurance_used": (
+        "Streak спасён! Один бесплатный пропуск на этой неделе использован — серия сохранена."
+    ),
+    # anti-cheat
+    "anti_cheat.followup": (
+        "Уточни — опиши одну конкретную деталь из задания, которое ты только что сделал? "
+        "(например: сколько повторений, где почувствовал нагрузку, куда смотрел)"
+    ),
+    "anti_cheat.hard_check_1": ("Перед началом — что первым бросилось тебе в глаза в комнате?"),
+    "anti_cheat.hard_check_2": ("Во время задания — какой звук ты слышал на фоне?"),
+    "anti_cheat.hard_check_3": ("Какой цвет или предмет был на уровне глаз во время упражнения?"),
 }

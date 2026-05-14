@@ -76,6 +76,9 @@ STRINGS: dict[str, str] = {
     "settings.toggle.enabled": "Bot enabled.",
     "settings.toggle.paused": "Bot paused.",
     "settings.language.prompt": "Pick language:",
+    # daily goal
+    "settings.goal.saved": "Daily goal set: <b>{n} tasks</b>.",
+    "settings.goal.invalid": "Please set a goal between 1 and 20. Usage: /goal <N>",
     # text fallback
     "text.fallback": "I mostly use buttons. Open the menu 👇",
     "text.context_lost": "Answer context lost.",
@@ -88,6 +91,9 @@ STRINGS: dict[str, str] = {
     "cmd.resume.desc": "Resume reminders",
     "cmd.lang.desc": "Change language",
     "cmd.quiet.desc": "Set quiet hours",
+    "cmd.did.desc": "Mark as done for N minutes (default 30)",
+    "cmd.busy.desc": "Set busy period (pauses tasks)",
+    "cmd.goal.desc": "Set daily task goal",
     # weekly summary
     "summary.weekly": (
         "<b>Weekly summary</b>\n"
@@ -105,4 +111,30 @@ STRINGS: dict[str, str] = {
     "settings.quiet.prompt": "Choose quiet hours preset (tasks will be paused in this window):",
     "settings.quiet.saved": "Quiet hours set: {start}–{end}.",
     "settings.quiet.off": "Quiet hours disabled.",
+    # smart silence — /did and /busy
+    "silence.did_logged": "Got it. I've logged that as done. Busy period: {minutes} min.",
+    "silence.busy_set": "Busy mode: no tasks for {minutes} min.",
+    "silence.busy_capped": "Capped at {max} minutes maximum.",
+    "silence.busy_usage": "Usage: /busy <minutes>. Example: /busy 60",
+    # baseline calibration
+    "baseline.graduation": (
+        "<b>Baseline complete!</b>\n\n"
+        "You've finished the calibration phase. "
+        "Difficulty will now adapt to your performance. Keep it up!"
+    ),
+    "baseline.progress": "Calibration phase: {completed}/10 tasks done. Keep going!",
+    # daily goal
+    "goal.reached": ("<b>Daily goal reached!</b>\n\n{msg}\n\nYou're free for today. See you tomorrow!"),
+    # streak insurance
+    "streak.insurance_used": ("Streak saved! One free pass used this week — your streak stays intact."),
+    # anti-cheat
+    "anti_cheat.followup": (
+        "Quick check — can you describe one specific detail from the exercise you just did? "
+        "(e.g. how many reps, where you felt it, what you were looking at)"
+    ),
+    "anti_cheat.hard_check_1": (
+        "Before starting, what was the first thing you noticed in the room around you?"
+    ),
+    "anti_cheat.hard_check_2": ("During the exercise, what sound could you hear in the background?"),
+    "anti_cheat.hard_check_3": ("What color or object was at eye level while you did the exercise?"),
 }

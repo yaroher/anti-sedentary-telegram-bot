@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from ..config import settings
 from ..db.models import HabitTrackEvent, User
 from ..utils.time import now
 
@@ -14,14 +13,9 @@ async def record(user: User, kind: str) -> HabitTrackEvent:
 
 async def count_today(user: User, kind: str) -> int:
     """Count habit events of *kind* that occurred today (server/user timezone)."""
-    today_date = now().date()
-    # created_at is tz-aware; filter by date() equivalent using range
     from datetime import timedelta
 
-    from ..utils.time import now as _now
-
-    _now_dt = _now()
-    # Start and end of today in the configured timezone
+    _now_dt = now()
     day_start = _now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     day_end = day_start + timedelta(days=1)
     return await HabitTrackEvent.filter(

@@ -38,3 +38,25 @@ async def notify_fail(bot: Bot, user: User, msg: str) -> None:
             reply_markup=main_menu(user.language),
         )
     )
+
+
+async def notify_simple(bot: Bot, user: User, text: str) -> None:
+    """Send a plain message with the main menu keyboard."""
+    await safe_send(
+        lambda: bot.send_message(
+            user.user_id,
+            text,
+            reply_markup=main_menu(user.language),
+        )
+    )
+
+
+async def notify_anti_cheat_followup(bot: Bot, user: User, task: Task) -> None:
+    """Send a follow-up message when suspicious activity is detected."""
+    text = t(user.language, "anti_cheat.followup")
+    await safe_send(
+        lambda: bot.send_message(
+            user.user_id,
+            text,
+        )
+    )

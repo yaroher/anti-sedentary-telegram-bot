@@ -12,6 +12,8 @@ ExerciseKind = Literal["strength", "core", "mobility"]
 class ExerciseLocale(BaseModel):
     title: str
     instruction: str
+    # When present, used instead of instruction; supports {reps} / {seconds} placeholders.
+    instruction_template: str | None = None
     check_questions: list[str] = Field(default_factory=list)
 
 
@@ -21,6 +23,10 @@ class Exercise(BaseModel):
     unlock_seconds: int
     difficulty: int = 1
     locales: dict[str, ExerciseLocale]
+
+    # Base reps/seconds for adaptive difficulty rendering
+    base_reps: int | None = None
+    base_seconds: int | None = None
 
     def for_locale(self, locale: str, fallback: str = "en") -> ExerciseLocale:
         return self.locales.get(locale) or self.locales[fallback]

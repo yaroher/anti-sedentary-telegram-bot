@@ -35,18 +35,31 @@ class User(Model):
     deleted_at = fields.DatetimeField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
-    # effectiveness additions
-    personal_difficulty_offsets: fields.JSONField = fields.JSONField(default=dict)
-    baseline_completed_at = fields.DatetimeField(null=True)
+
+    # Adaptive difficulty: JSON dict mapping exercise_code -> int offset (-5..+10)
+    personal_difficulty_offsets: fields.Field = fields.JSONField(default=dict)
+
+    # Daily goal (number of tasks per day)
     daily_goal = fields.IntField(default=5)
-    streak_insurance_used_at = fields.DateField(null=True)
+
+    # Baseline calibration
+    baseline_completed_at = fields.DatetimeField(null=True)
+
+    # Progressive overload / deload tracking
     last_deload_at = fields.DateField(null=True)
+
+    # Streak insurance: track when last used (ISO week string "YYYY-Www")
+    streak_insurance_used_week = fields.CharField(16, null=True)
+
+    # Health tracks (eye/hydration/posture)
     eye_break_enabled = fields.BooleanField(default=False)
     hydration_enabled = fields.BooleanField(default=False)
     posture_enabled = fields.BooleanField(default=False)
     eye_break_minutes = fields.IntField(default=20)
     hydration_minutes = fields.IntField(default=60)
     posture_minutes = fields.IntField(default=45)
+
+    # LLM-curated stable facts about the user (injuries, preferences)
     user_facts = fields.TextField(null=True)
 
     class Meta:
@@ -68,14 +81,23 @@ class DailyState(Model):
     last_task_at = fields.DatetimeField(null=True)
     next_task_at = fields.DatetimeField(null=True)
     summary = fields.TextField(default="")
-    # effectiveness additions
+
+    # Daily goal tracking
+    daily_goal_reached = fields.BooleanField(default=False)
+
+    # Recovery day flag (Wednesday by default, per ISO week)
+    recovery_day = fields.BooleanField(default=False)
+
+    # Best streak today
+    best_streak = fields.IntField(default=0)
+
+    # Health track counters
     water_count = fields.IntField(default=0)
     eye_breaks_done = fields.IntField(default=0)
     posture_checks_done = fields.IntField(default=0)
-    daily_goal_reached = fields.BooleanField(default=False)
+
+    # Daily summary marker
     daily_summary_sent_at = fields.DatetimeField(null=True)
-    recovery_day = fields.BooleanField(default=False)
-    best_streak_today = fields.IntField(default=0)
 
     class Meta:
         table = "daily_state"
@@ -102,10 +124,11 @@ class Task(Model):
     check_question = fields.TextField(null=True)
     check_answer = fields.TextField(null=True)
     suspicious = fields.BooleanField(default=False)
-    # effectiveness additions
-    time_to_complete_seconds = fields.IntField(null=True)
-    difficulty_rating = fields.IntField(null=True)
-    suspicion_reasons: fields.JSONField = fields.JSONField(default=list)
+
+    # Anti-cheat and calibration
+    suspicion_reasons: fields.Field = fields.JSONField(default=list)
+    difficulty_rating = fields.IntField(null=True)  # 1-10 self-reported
+    time_to_complete_seconds = fields.FloatField(null=True)
 
     class Meta:
         table = "tasks"
@@ -136,11 +159,11 @@ class Achievement(Model):
         "models.User", related_name="achievements", on_delete=fields.CASCADE
     )
     code = fields.CharField(64)
-    awarded_at = fields.DatetimeField(auto_now_add=True)
+    earned_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "achievements"
-        unique_together = (("user", "code"),)
+        indexes = (("user_id", "code"),)
 
 
 class ExerciseCalibration(Model):
@@ -150,8 +173,8 @@ class ExerciseCalibration(Model):
     )
     exercise_code = fields.CharField(64)
     sample_count = fields.IntField(default=0)
-    median_completion_seconds = fields.IntField(default=0)
-    median_difficulty = fields.FloatField(default=5.0)
+    median_completion_seconds = fields.FloatField(default=0.0)
+    last_difficulty_rating = fields.IntField(null=True)
     updated_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
@@ -160,15 +183,13 @@ class ExerciseCalibration(Model):
 
 
 class BusyPeriod(Model):
-    """Manual /busy NN windows or scheduled mute periods."""
-
     id = fields.IntField(pk=True)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="busy_periods", on_delete=fields.CASCADE
     )
-    started_at = fields.DatetimeField()
+    reason = fields.CharField(32)  # "did" or "busy"
     ends_at = fields.DatetimeField()
-    reason = fields.CharField(64, default="busy")
+    created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "busy_periods"
@@ -176,30 +197,28 @@ class BusyPeriod(Model):
 
 
 class Partnership(Model):
-    """Bidirectional accountability link. Two rows per partnership (one per direction)."""
-
     id = fields.IntField(pk=True)
-    user_id_a = fields.BigIntField()
-    user_id_b = fields.BigIntField()
+    user_a: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models.User", related_name="partnerships_as_a", on_delete=fields.CASCADE
+    )
+    user_b: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models.User", related_name="partnerships_as_b", on_delete=fields.CASCADE
+    )
     created_at = fields.DatetimeField(auto_now_add=True)
-    active = fields.BooleanField(default=True)
 
     class Meta:
         table = "partnerships"
-        unique_together = (("user_id_a", "user_id_b"),)
-        indexes = (("user_id_a", "active"),)
 
 
 class HabitTrackEvent(Model):
-    """Logs eye-break / hydration / posture acknowledgements per user per day."""
-
     id = fields.IntField(pk=True)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="habit_events", on_delete=fields.CASCADE
     )
-    kind = fields.CharField(16)
+    event_type = fields.CharField(64)
+    payload: fields.Field = fields.JSONField(default=dict)
     created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "habit_track_events"
-        indexes = (("user_id", "kind", "created_at"),)
+        indexes = (("user_id", "created_at"),)

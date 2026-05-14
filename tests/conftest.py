@@ -53,23 +53,8 @@ async def tortoise_db():
 async def _clean_db(tortoise_db: None) -> AsyncGenerator[None, None]:
     """Truncate all tables before each test."""
     yield
-    from anti_sedentary_bot.db.models import (
-        Achievement,
-        BusyPeriod,
-        ChatMessage,
-        DailyState,
-        ExerciseCalibration,
-        HabitTrackEvent,
-        Partnership,
-        Task,
-        User,
-    )
+    from anti_sedentary_bot.db.models import ChatMessage, DailyState, Task, User
 
-    await HabitTrackEvent.all().delete()
-    await BusyPeriod.all().delete()
-    await Partnership.all().delete()
-    await Achievement.all().delete()
-    await ExerciseCalibration.all().delete()
     await ChatMessage.all().delete()
     await Task.all().delete()
     await DailyState.all().delete()

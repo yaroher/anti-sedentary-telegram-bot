@@ -24,7 +24,9 @@ async def bump_completed(state: DailyState) -> None:
     state.streak += 1
     if state.pressure_level > 0:
         state.pressure_level -= 1
-    await state.save(update_fields=["completed_count", "streak", "pressure_level"])
+    if state.streak > state.best_streak:
+        state.best_streak = state.streak
+    await state.save(update_fields=["completed_count", "streak", "pressure_level", "best_streak"])
 
 
 async def bump_skipped(state: DailyState, hard: bool) -> None:
@@ -58,9 +60,14 @@ async def last_n_days(user: User, n: int) -> list[DailyState]:
     return await DailyState.filter(user=user, day__gte=cutoff).order_by("-day")
 
 
-# ---------------------------------------------------------------------------
-# Effectiveness additions
-# ---------------------------------------------------------------------------
+async def mark_goal_reached(state: DailyState) -> None:
+    state.daily_goal_reached = True
+    await state.save(update_fields=["daily_goal_reached"])
+
+
+async def mark_recovery_day(state: DailyState) -> None:
+    state.recovery_day = True
+    await state.save(update_fields=["recovery_day"])
 
 
 async def bump_water(state: DailyState) -> DailyState:
@@ -81,16 +88,6 @@ async def bump_posture(state: DailyState) -> DailyState:
     return state
 
 
-async def mark_recovery_day(state: DailyState) -> None:
-    state.recovery_day = True
-    await state.save(update_fields=["recovery_day"])
-
-
-async def mark_goal_reached(state: DailyState) -> None:
-    state.daily_goal_reached = True
-    await state.save(update_fields=["daily_goal_reached"])
-
-
 async def mark_summary_sent(state: DailyState, when: datetime | None = None) -> None:
     from ..utils.time import now as _now
 
@@ -99,59 +96,52 @@ async def mark_summary_sent(state: DailyState, when: datetime | None = None) -> 
 
 
 async def update_best_streak(state: DailyState, value: int) -> None:
-    if value > state.best_streak_today:
-        state.best_streak_today = value
-        await state.save(update_fields=["best_streak_today"])
+    if value > state.best_streak:
+        state.best_streak = value
+        await state.save(update_fields=["best_streak"])
 
 
 async def aggregate_week(user: User, weeks_back: int = 0) -> dict:
-    """Return aggregated stats for a 7-day window.
-
-    weeks_back=0  → most recent 7 days
-    weeks_back=1  → the 7 days before that, etc.
-    """
-    offset_days = weeks_back * 7
-    end = today() - timedelta(days=offset_days)
-    start = end - timedelta(days=7)
-    rows = await DailyState.filter(user=user, day__gt=start, day__lte=end)
-    completed = sum(r.completed_count for r in rows)
-    skipped = sum(r.skipped_count for r in rows)
-    failed = sum(r.failed_count for r in rows)
-    best_streak = max((r.best_streak_today for r in rows), default=0)
-    days_active = sum(1 for r in rows if r.completed_count > 0)
+    """Aggregate completed/skipped/failed/best_streak/days_active over a 7-day window."""
+    days = await last_n_days(user, 7 + weeks_back * 7)
+    # slice the requested week
+    start = weeks_back * 7
+    end = start + 7
+    window = days[start:end] if len(days) > start else []
     return {
-        "completed": completed,
-        "skipped": skipped,
-        "failed": failed,
-        "best_streak": best_streak,
-        "days_active": days_active,
+        "completed": sum(d.completed_count for d in window),
+        "skipped": sum(d.skipped_count for d in window),
+        "failed": sum(d.failed_count for d in window),
+        "best_streak": max((d.best_streak for d in window), default=0),
+        "days_active": sum(1 for d in window if d.completed_count > 0),
     }
 
 
 async def completion_heatmap(user: User, days: int = 14) -> dict[int, dict]:
-    """Return per-hour completion stats over the last *days* days.
+    """Hour-of-day completion heatmap across last *days* days."""
+    from ..config import settings
+    from ..db.models import Task
 
-    Keys are local-timezone hour integers (0-23).
-    Values: {"completed": N, "skipped": M, "failed": K}
-    """
-    from ..db.models import Task, TaskStatus
-    from ..utils.time import to_tz
-
-    cutoff = today() - timedelta(days=days)
-    tasks = await Task.filter(user=user, day__gte=cutoff)
-
-    result: dict[int, dict] = {}
+    cutoff = (await _utc_now()) - _timedelta(days=days)
+    tasks = await Task.filter(user_id=user.user_id, created_at__gte=cutoff).all()
+    bucket: dict[int, dict] = {h: {"completed": 0, "skipped": 0, "failed": 0} for h in range(24)}
     for task in tasks:
-        if task.status == TaskStatus.COMPLETED and task.completed_at:
-            hour = to_tz(task.completed_at).hour
-            bucket = result.setdefault(hour, {"completed": 0, "skipped": 0, "failed": 0})
-            bucket["completed"] += 1
-        elif task.status == TaskStatus.SKIPPED and task.skipped_at:
-            hour = to_tz(task.skipped_at).hour
-            bucket = result.setdefault(hour, {"completed": 0, "skipped": 0, "failed": 0})
-            bucket["skipped"] += 1
-        elif task.status == TaskStatus.FAILED and task.failed_at:
-            hour = to_tz(task.failed_at).hour
-            bucket = result.setdefault(hour, {"completed": 0, "skipped": 0, "failed": 0})
-            bucket["failed"] += 1
-    return result
+        for kind, ts in (
+            ("completed", task.completed_at),
+            ("skipped", task.skipped_at),
+            ("failed", task.failed_at),
+        ):
+            if ts is None:
+                continue
+            h = ts.astimezone(settings.tz).hour
+            bucket[h][kind] += 1
+    return bucket
+
+
+async def _utc_now():
+    from ..utils.time import now as _now
+
+    return _now()
+
+
+from datetime import timedelta as _timedelta  # noqa: E402

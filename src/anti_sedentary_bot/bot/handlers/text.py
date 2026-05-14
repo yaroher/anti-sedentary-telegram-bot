@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -15,6 +17,17 @@ from ..keyboards import main_menu
 from ..states import InputStates
 
 router = Router(name="text")
+
+# Regex to find a number 1-10 in text (e.g. "7", "7/10", "10")
+_RATING_RE = re.compile(r"\b(10|[1-9])\b")
+
+
+def _extract_rating(text: str) -> int | None:
+    """Extract first number 1-10 from text, or None."""
+    m = _RATING_RE.search(text)
+    if m:
+        return int(m.group(1))
+    return None
 
 
 @router.message(InputStates.waiting_schedule, F.text)
@@ -55,6 +68,16 @@ async def on_check_answer(message: Message, state: FSMContext, user: User) -> No
         if suspicious:
             task.suspicious = True
         await task.save(update_fields=["check_answer", "suspicious"])
+
+        # Parse difficulty rating from answer
+        rating = _extract_rating(text)
+        if rating is not None:
+            await task_repo.set_difficulty_rating(task_id, user.user_id, rating)
+            task.difficulty_rating = rating
+            # Apply offset adjustments
+            from ...services import calibration
+
+            await calibration.apply_difficulty_rating(user, task)
 
     await state.clear()
     reaction = await llm_text(
