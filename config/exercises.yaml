@@ -1,0 +1,120 @@
+exercises:
+  - code: squats_easy
+    kind: strength
+    unlock_seconds: 75
+    difficulty: 1
+    locales:
+      ru:
+        title: "Приседания"
+        instruction: "Сделай 20 приседаний в спокойном темпе."
+        check_questions:
+          - "Что устало первым: ноги, дыхание или ничего?"
+          - "Оцени тяжесть приседаний от 1 до 10."
+          - "Темп был ровный или пришлось замедлиться?"
+      en:
+        title: "Squats"
+        instruction: "Do 20 squats at a calm pace."
+        check_questions:
+          - "What got tired first: legs, breath, or nothing?"
+          - "Rate squat difficulty from 1 to 10."
+          - "Was pace steady or did you slow down?"
+
+  - code: pushups_easy
+    kind: strength
+    unlock_seconds: 60
+    difficulty: 1
+    locales:
+      ru:
+        title: "Отжимания"
+        instruction: "Сделай 10–15 отжиманий. Можно с колен, если тяжело."
+        check_questions:
+          - "Грудь, плечи или трицепс почувствовались сильнее?"
+          - "Сколько чистых повторений получилось?"
+          - "Оцени тяжесть отжиманий от 1 до 10."
+      en:
+        title: "Push-ups"
+        instruction: "Do 10–15 push-ups. Knees OK if it's hard."
+        check_questions:
+          - "Chest, shoulders or triceps felt it most?"
+          - "How many clean reps?"
+          - "Rate push-up difficulty from 1 to 10."
+
+  - code: abs_crunch
+    kind: core
+    unlock_seconds: 80
+    difficulty: 1
+    locales:
+      ru:
+        title: "Пресс"
+        instruction: "Сделай 25 скручиваний на пресс или 40 секунд dead bug."
+        check_questions:
+          - "Пресс горел или было легко?"
+          - "Что выбрал: скручивания или dead bug?"
+          - "Оцени нагрузку на корпус от 1 до 10."
+      en:
+        title: "Abs"
+        instruction: "Do 25 crunches or 40 seconds of dead bug."
+        check_questions:
+          - "Did the abs burn or was it easy?"
+          - "Crunches or dead bug?"
+          - "Rate core load from 1 to 10."
+
+  - code: plank
+    kind: core
+    unlock_seconds: 65
+    difficulty: 2
+    locales:
+      ru:
+        title: "Планка"
+        instruction: "Сделай планку 45 секунд. Если тяжело — 2 подхода по 25 секунд."
+        check_questions:
+          - "Сколько секунд реально продержался?"
+          - "Где устал больше всего: пресс, плечи или поясница?"
+          - "Планка была ровная или начал провисать?"
+      en:
+        title: "Plank"
+        instruction: "Plank for 45 seconds. If hard — 2x25 seconds."
+        check_questions:
+          - "How many seconds did you actually hold?"
+          - "Where did you feel it most: abs, shoulders, lower back?"
+          - "Form steady or did you sag?"
+
+  - code: walk
+    kind: mobility
+    unlock_seconds: 180
+    difficulty: 1
+    locales:
+      ru:
+        title: "Ходьба"
+        instruction: "Встань и походи 3 минуты. Лучше уйди от рабочего места."
+        check_questions:
+          - "Куда дошёл: кухня, коридор, улица, другое?"
+          - "Стало ли легче голове после ходьбы?"
+          - "Ты реально отошёл от рабочего места? Ответь честно."
+      en:
+        title: "Walk"
+        instruction: "Stand up and walk for 3 minutes. Better away from your desk."
+        check_questions:
+          - "Where did you go: kitchen, hallway, outside, other?"
+          - "Head feel clearer after walking?"
+          - "Did you actually leave your workstation? Be honest."
+
+  - code: mobility_neck_shoulders
+    kind: mobility
+    unlock_seconds: 120
+    difficulty: 1
+    locales:
+      ru:
+        title: "Шея и плечи"
+        instruction: "2 минуты: круги плечами, мягкие наклоны шеи, раскрытие грудного отдела."
+        check_questions:
+          - "Где было больше напряжения: шея, плечи или грудной отдел?"
+          - "Стало свободнее после разминки?"
+          - "Оцени зажатость до/после: например 7→4."
+      en:
+        title: "Neck & shoulders"
+        instruction: "2 minutes: shoulder circles, gentle neck tilts, thoracic openers."
+        check_questions:
+          - "Where was more tension: neck, shoulders, thoracic?"
+          - "Looser after the mobility work?"
+          - "Rate tightness before/after, e.g. 7→4."

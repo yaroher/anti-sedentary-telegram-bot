@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+      POSTGRES_DB: anti_sedentary
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot -d anti_sedentary"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  bot:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://bot:bot@postgres:5432/anti_sedentary
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    # Port 8080 is exposed internally so other compose services (e.g. a reverse
+    # proxy or uptime monitor) can reach /healthz and /readyz.
+    # Remove the comment below and replace with "ports:" if you need host access.
+    expose:
+      - "8080"
+    healthcheck:
+      # Relies on the aiohttp /healthz endpoint started by the bot process.
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz').read()\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    # tini is baked into the image ENTRYPOINT; compose init: true is NOT set
+    # to avoid running a second init process.
+    init: false
+
+volumes:
+  pgdata:
